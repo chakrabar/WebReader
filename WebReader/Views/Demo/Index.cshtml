@@ -1,0 +1,27 @@
+﻿
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+    <head>
+        <meta name="viewport" content="width=device-width" />
+        <title>Index</title>
+    </head>
+    <body>
+        <form id="form1">
+            <h4>This is a MVC ActionResult : Mvc/Index</h4>
+            <div>
+                <span ID="lblMessage">@ViewBag.Date</span>
+                <br /><br />
+                Enter your name here<br />
+                <input type="text" ID="txtName" ></input>
+                <input type="submit" value="Submit" />
+                <br />
+                <asp:Label ID="lblName" runat="server" Text="msg" Visible="false"></asp:Label>
+            </div>
+        </form>
+    </body>
+</html>
