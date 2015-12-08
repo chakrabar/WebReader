@@ -23,7 +23,7 @@ namespace WebReader.Utilities
                     {
                         if (!string.IsNullOrEmpty(accept) && accept.Contains("/"))
                             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(accept));
-                        message = GetWebResponse(uri, ref contentType, client);
+                        message = GetWebResponse(uri, ref contentType, client, baseUri);
                     }
                 }
                 catch (WebException wex)
@@ -55,7 +55,7 @@ namespace WebReader.Utilities
             };
         }
 
-        internal static string GetWebResponse(string uri, ref string contentType, HttpClient client)
+        internal static string GetWebResponse(string uri, ref string contentType, HttpClient client, Uri baseUri)
         {
             var responseContent = string.Empty;
             var response = client.GetAsync(uri).Result;
@@ -68,7 +68,12 @@ namespace WebReader.Utilities
                 {
                     responseContent = response.Content.ReadAsStringAsync().Result;
                     if (contentType == "text/html")
-                        responseContent = WebUtilities.SetAbsoluteLinks(responseContent, WebUtilities.GetBaseUri(uri));
+                    {
+                        var webReaderUri = new Uri(WebUtilities.GetWebReaderUri(baseUri));
+                        responseContent = WebUtilities.SetAbsoluteLinks(responseContent, 
+                                                                        WebUtilities.GetBaseUriForLinks(uri, webReaderUri),
+                                                                        WebUtilities.GetBaseUriForLinks(uri, webReaderUri, true));
+                    }
                 }
             }
             else
