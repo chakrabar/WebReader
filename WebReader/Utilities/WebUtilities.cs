@@ -1,5 +1,6 @@
 ﻿using HtmlAgilityPack;
 using System;
+using System.Linq;
 
 namespace WebReader.Utilities
 {
@@ -7,10 +8,18 @@ namespace WebReader.Utilities
     {
         internal static string SetAbsoluteUri(string uri, Uri baseUri)
         {
+            //if (uri.StartsWith("/"))
+            //    uri = string.Format("{0}://{1}{2}", baseUri.Scheme, baseUri.Authority, uri);
+            //else if (!uri.ToLower().Contains("http://") && !uri.ToLower().Contains("https://"))
+            //    uri = "http://" + uri;
+            //return uri;
+            var protocolScheme = baseUri.Scheme;
+            if (uri.StartsWith("//"))
+                return protocolScheme + ":" + uri;
             if (uri.StartsWith("/"))
-                uri = string.Format("{0}://{1}{2}", baseUri.Scheme, baseUri.Authority, uri);
-            else if (!uri.ToLower().Contains("http://") && !uri.ToLower().Contains("https://"))
-                uri = "http://" + uri;
+                return string.Format("{0}://{1}{2}", protocolScheme, baseUri.Authority, uri);
+            if (!IsAbsoluteUri(uri)) 
+                return protocolScheme + "://" + uri;
             return uri;
         }
 
@@ -27,15 +36,15 @@ namespace WebReader.Utilities
             var directUri = string.Format("{0}://{1}", uriObj.Scheme, uriObj.Authority);
             if (keepDirectLink)
                 return directUri;
-            return GetWebReaderUri(baseUri) + "?uri=" + directUri; //TODO: remove hard coding
+            return GetWebReaderUri(baseUri) + "?uri="; //+directUri; //TODO: remove hard coding //9 dec 15
         }
 
         /// <summary>
         /// 
         /// </summary>
         /// <param name="contentHtml"></param>
-        /// <param name="divertUri">Uri for WebReader redirection</param>
-        /// <param name="directUri">Uri for direct link to original resource</param>
+        /// <param name="divertUri">Uri for WebReader redirection e.g. http://arghya.com/webreader/read?uri=</param>
+        /// <param name="directUri">Uri for direct link to original resource e.g. http://www.facebook.com</param>
         /// <returns></returns>
         internal static string SetAbsoluteLinks(string contentHtml, string divertUri, string directUri)
         {
@@ -52,13 +61,13 @@ namespace WebReader.Utilities
                 if (att != null)
                 {
                     string href = att.Value; //TODO: re-evaluate "link"
-                    if (link.OriginalName.ToLower() == "img" || link.OriginalName.ToLower() == "audio"
-                            || link.OriginalName.ToLower() == "video" || link.OriginalName.ToLower() == "link") //we are not good at rendering binary. yet.
+                    var tagsWithOriginalLink = new[] { "img", "link", "audio", "video" };
+                    if (tagsWithOriginalLink.Any(tag => link.OriginalName.ToLower() == tag)) //we are not good at rendering binary. yet.
                     {
                         if (!IsAbsoluteUri(href))
                         {
                             //uri = new Uri(new Uri(baseUri), uri);
-                            att.Value = directUri + href; //uri.ToString(); //TODO: check fix
+                            att.Value = directUri + href; //uri.ToString();
                         }
                         continue;
                     }
@@ -66,11 +75,12 @@ namespace WebReader.Utilities
                     if (href.StartsWith("javascript", StringComparison.InvariantCultureIgnoreCase))
                         continue;
 
-                    if (!IsAbsoluteUri(href))
-                    {
-                        //uri = new Uri(new Uri(baseUri), uri);
-                        att.Value = divertUri + href; //uri.ToString(); //TODO: check fix
-                    }
+                    //if (!IsAbsoluteUri(href))
+                    //{
+                    //    //uri = new Uri(new Uri(baseUri), uri);
+                    //    att.Value = divertUri + href; //uri.ToString(); //TODO: check fix
+                    //}
+                    att.Value = IsAbsoluteUri(href) ? divertUri + href : divertUri + directUri + href;
                 }
             }
             return htmlDoc.DocumentNode.OuterHtml;
@@ -81,6 +91,12 @@ namespace WebReader.Utilities
             Uri uri = new Uri(link, UriKind.RelativeOrAbsolute);
             return link.StartsWith("//") || uri.IsAbsoluteUri;
         }
+
+        //static bool IsAbsoluteUri(string link)
+        //{
+        //    Uri result;
+        //    return link.StartsWith("//") || Uri.TryCreate(link, UriKind.Absolute, out result);
+        //}
 
         static HtmlAttribute GetAttributeForLink(HtmlNode link)
         {
